@@ -2,28 +2,41 @@ mod engine;
 
 use bevy::prelude::*;
 use engine::{
-    board, board::{Tile, Board, Square, SquareModifier, BoardLocation}, game, game::{Game, Word, TurnAction, Bag}, player, player::Player
+    board,
+    board::{Board, BoardLocation, Square, SquareModifier, Tile},
+    game,
+    game::{Bag, Game, TurnAction, Word},
+    player,
+    player::Player,
 };
 
 fn startup(mut commands: Commands) {
     let mut game = game::Game::new();
-    let players: Vec<(Entity, Player)> = (0..4).map(|_| (Entity::new(), Player::new(&mut game))).collect();
-    let turn_order: TurnOrder = vec![];
-    for (entity, _player) in players.iter() {
-        turn_order.0.push(entity.id())
-    }
-    commands
-        .spawn((player::Player::new(&mut game),))
-        .spawn((player::Player::new(&mut game),))
-        .spawn((player::Player::new(&mut game),))
-        .spawn((player::Player::new(&mut game),))
-        .spawn((game,));
+    let players: Vec<(Entity, Player)> = (0..4)
+        .map(|_| (Entity::new(), Player::new(&mut game)))
+        .collect();
+    let turn_order: TurnOrder = players
+        .iter()
+        .map(|(entity, _player)| entity.id())
+        .collect();
+    players
+        .iter()
+        .fold(&mut commands, |commands, (entity, player)| {
+            commands.spawn_as_entity(*entity, (player,))
+        })
+        .insert_resource(turn_order)
+        .insert_resource(game);
 }
 
-struct TurnOrder(Vec<u32>);
+type TurnOrder = Vec<u32>;
 
-fn player_turn_handler(mut turn: ResMut<u32>, turn_order: Res<TurnOrder>, player: &mut Player, game: &mut Game) {
-
+fn player_turn_handler(
+    mut turn: ResMut<u32>,
+    turn_order: Res<TurnOrder>,
+    mut game: ResMut<Game>,
+    player: &mut Player,
+) {
+    turn_order.iter().map(|id| println!("{:?}", id));
 }
 
 fn main() {
@@ -32,44 +45,44 @@ fn main() {
         .add_startup_system(startup.system())
         .run();
 
-    let mut game = game::Game::new();
+    // let mut game = game::Game::new();
 
-    let mut players: Vec<player::Player> = vec![];
+    // let mut players: Vec<player::Player> = vec![];
 
-    for _ in 0..4 {
-        let new_player = player::Player::new(&mut game);
-        players.push(new_player);
-    }
+    // for _ in 0..4 {
+    //     let new_player = player::Player::new(&mut game);
+    //     players.push(new_player);
+    // }
 
-    let mut current_player_number = 0;
+    // let mut current_player_number = 0;
 
-    loop {
-        let current_player = match players.get_mut(current_player_number) {
-            Some(p) => p,
-            None => continue,
-        };
+    // loop {
+    //     let current_player = match players.get_mut(current_player_number) {
+    //         Some(p) => p,
+    //         None => continue,
+    //     };
 
-        let action = game::TurnAction::DiscardTiles(vec![0, 1, 2]);
+    //     let action = game::TurnAction::DiscardTiles(vec![0, 1, 2]);
 
-        match action {
-            game::TurnAction::PlayWord(x) => current_player.play_word(&x, &game.board),
-            game::TurnAction::DiscardTiles(x) => {
-                game.bag.return_tiles(current_player.remove_tiles(x));
-            }
-        }
-        current_player
-            .hand
-            .extend(game.bag.draw_tiles(7 - current_player.hand.len()));
+    //     match action {
+    //         game::TurnAction::PlayWord(x) => current_player.play_word(&x, &game.board),
+    //         game::TurnAction::DiscardTiles(x) => {
+    //             game.bag.return_tiles(current_player.remove_tiles(x));
+    //         }
+    //     }
+    //     current_player
+    //         .hand
+    //         .extend(game.bag.draw_tiles(7 - current_player.hand.len()));
 
-        current_player_number += 1;
-        if current_player_number == 4 {
-            current_player_number = 0;
-        }
+    //     current_player_number += 1;
+    //     if current_player_number == 4 {
+    //         current_player_number = 0;
+    //     }
 
-        for player in players {
-            println!("{:#?}", player.hand)
-        }
+    //     for player in players {
+    //         println!("{:#?}", player.hand)
+    //     }
 
-        break;
-    }
+    //     break;
+    // }
 }
